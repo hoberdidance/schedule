@@ -1,24 +1,28 @@
 <title>UOttawa Schedule</title>
-<body>
-	<a id=instr href=instructions.html>instructions</a>
+<div id=notTable>
+	<button id=instrToggle>show instructions</button>
+	<div id=instr hidden=true>
+		<div id=videoDiv>
+			<video controls><source src=instructions.mp4 type="video/mp4"></video>
+			<p>To save to PDF or print, print the webpage, and adjust the scale as desired.
+				 For colours, enable the option [more settings > options > print backgrounds].</p>
+		</div>
+	</div>
 	<textarea id=i></textarea>
 	<button id=go>go</button>
-	<table id=table></table>
-</body>
+</div>
+<table id=table></table>
 
 <style>
-body          { display: flex; gap: 10px; flex-direction: column; align-items: center; }
-button        { padding: 5px; }
-table, th, td { border: 1px solid; border-collapse: collapse; padding: 10px; text-align: center; margin: 30px; }
+body, #notTable, #videoDiv { display: flex; gap: 10px; flex-direction: column; align-items: center; }
+button                     { padding: 10px; border: none; border-radius: 5px; }
+video                      { width: min(100%, 1000px); }
+table, th, td              { border: 1px solid; border-collapse: collapse; padding: 10px; text-align: center; margin: 30px; }
 </style>
 
 <script>
-const timeToMilitary = s => {
-	const [h, m] = s.split(":"), hour = +h, min = (+m[0] >> 1) / 2, ampm = m.match(/PM/) && hour !== 12 ? 12 : 0
-	return hour + min + ampm }
-
-const militaryToTime = t => {
-	const hour = ~~(t < 13 ? t : t-12), min = (t%1 * 60 + "").padStart(2, "0"); return `${hour}:${min}` }
+const timeToMilitary = s => { const [h, m] = s.match(/\d+/g), ampm = s.match(/AM/) ? 0 : 12; return +h%12 + +m/60 + ampm }
+const militaryToTime = t => { const h = ~~(t < 13 ? t : t-12), m = t%1 ? "30" : "00"; return `${h}:${m}` }
 
 const parse = s => { s = s.split("\n").filter(l => l.trim())
 	let colours = ["LightSkyBlue", "Tomato", "Wheat", "Gold", "LightGreen", "Thistle", "AliceBlue", "Orange"]
@@ -26,10 +30,10 @@ const parse = s => { s = s.split("\n").filter(l => l.trim())
 	const parseWhile = (cond, parse, after = _ => {}) => { const a = []; while (cond()) a.push(parse()), after(); return a }
 
 	const parseDay      = date => ["Mo", "Tu", "We", "Th", "Fr"].indexOf(date.slice(0, 2))
-	,     parseTime     = date => date.slice(2).split(" - ").map(timeToMilitary)
+	,     parseTime     = date => { const [s, e] = date.slice(2).split("-").map(timeToMilitary); return [s, e + 1/6] }
 	,     parseLocation = _ => s.shift().split("(")[1].replace(")", "")
 	,     parseEvent    = _ => ({ day: parseDay(s[0]), time: parseTime(s.shift()), location: parseLocation() })
-	,     parseSection  = _ => (s.splice(0, 3), parseWhile(_ => s[0]?.match(/^(Mo|Tu|We|Th|Fr)/), parseEvent, _ => s.splice(0, 2)))
+	,     parseSection  = _ => (s.splice(0, 3), parseWhile(_ => s[0]?.match(/AM|PM/), parseEvent, _ => s.splice(0, 2)))
 	,     skipHeader    = _ => { while (!s.shift().match(/^Class Nbr/)); }
 	,     parseBody     = _ => (skipHeader(), parseWhile(_ => !isNaN(s[0]), parseSection).flat())
 	,     parseName     = _ => s.shift().split(" - ")[1]
@@ -41,8 +45,8 @@ const parse = s => { s = s.split("\n").filter(l => l.trim())
 
 const C = (elt, par, cb = _ => {}) => cb(par.appendChild(document.createElement(elt)))
 
-const makeHeader = h => { h.insertRow();
-	["Time", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"].map(t => C("th", h.rows[0], elt => elt.textContent = t)) }
+const titles     = ["Time", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+const makeHeader = h => (h.insertRow(), titles.map(t => C("th", h.rows[0], elt => elt.textContent = t)))
 
 const makeBody = days => b => {
 	const times = days.flat().map(m => m.time).flat(), start = Math.min(...times), end = Math.max(...times)
@@ -57,7 +61,8 @@ const makeBody = days => b => {
 
 const makeTable = days => (C("thead", table, makeHeader), C("tbody", table, makeBody(days)))
 
+instrToggle.onclick  = _ => instrToggle.innerText = `${(instr.hidden = !instr.hidden) ? "show" : "hide"} instructions`
 go.onclick           = _ => (table.innerHTML = "", makeTable(parse(i.value)))
-window.onbeforeprint = _ => instr.hidden = i.hidden = go.hidden = true
-window.onafterprint  = _ => instr.hidden = i.hidden = go.hidden = false
+window.onbeforeprint = _ => notTable.style.display = "none"
+window.onafterprint  = _ => notTable.style.display = ""
 </script>
