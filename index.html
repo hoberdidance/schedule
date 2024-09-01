@@ -30,7 +30,7 @@ const parse = s => { s = s.split("\n").filter(l => l.trim())
 	const parseWhile = (cond, parse, after = _ => {}) => { const a = []; while (cond()) a.push(parse()), after(); return a }
 
 	const parseDay      = date => ["Mo", "Tu", "We", "Th", "Fr"].indexOf(date.slice(0, 2))
-	,     parseTime     = date => { const [s, e] = date.slice(2).split("-").map(timeToMilitary); return [s, e + 1/6] }
+	,     parseTime     = date => date.slice(2).split("-").map(t => Math.round(timeToMilitary(t)*2)/2)
 	,     parseLocation = _ => s.shift().split("(")[1].replace(")", "")
 	,     parseEvent    = _ => ({ day: parseDay(s[0]), time: parseTime(s.shift()), location: parseLocation() })
 	,     parseSection  = _ => (s.splice(0, 3), parseWhile(_ => s[0]?.match(/AM|PM/), parseEvent, _ => s.splice(0, 2)))
