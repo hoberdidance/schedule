@@ -29,11 +29,12 @@ const parse = s => { s = s.split("\n").filter(l => l.trim())
 	const useColour = _ => colours.splice(~~(Math.random() * colours.length), 1)[0]
 	const parseWhile = (cond, parse, after = _ => {}) => { const a = []; while (cond()) a.push(parse()), after(); return a }
 
+	let comp;
 	const parseDay      = date => ["Mo", "Tu", "We", "Th", "Fr"].indexOf(date.slice(0, 2))
 	,     parseTime     = date => date.slice(2).split("-").map(t => Math.round(timeToMilitary(t)*2)/2)
 	,     parseLocation = _ => s.shift().split("(")[1].replace(")", "")
-	,     parseEvent    = _ => ({ day: parseDay(s[0]), time: parseTime(s.shift()), location: parseLocation() })
-	,     parseSection  = _ => (s.splice(0, 3), parseWhile(_ => s[0]?.match(/AM|PM/), parseEvent, _ => s.splice(0, 2)))
+	,     parseEvent    = _ => ({ day: parseDay(s[0]), time: parseTime(s.shift()), location: parseLocation(), comp })
+	,     parseSection  = _ => (comp = s.splice(0, 3).at(-1), parseWhile(_ => s[0]?.match(/AM|PM/), parseEvent, _ => s.splice(0, 2)))
 	,     skipHeader    = _ => { while (!s.shift().match(/^Class Nbr/)); }
 	,     parseBody     = _ => (skipHeader(), parseWhile(_ => !isNaN(s[0]), parseSection).flat())
 	,     parseName     = _ => s.shift().split(" - ")[1]
@@ -52,7 +53,7 @@ const makeBody = days => b => {
 	const times = days.flat().map(m => m.time).flat(), start = Math.min(...times), end = Math.max(...times)
 	const addChunk = (s, e, cb) => s < e && C("td", b.rows[(s-start)*2], c => (c.rowSpan = (e-s)*2, cb(c)))
 	,     addSpare = (s, e)     => addChunk(s, e, c => c.style.border = "0px")
-	const styleEvent  = e => c => (c.innerHTML = `${e.name}<br>${e.location}`, c.style.backgroundColor = e.colour)
+	const styleEvent  = e => c => (c.innerHTML = `${e.name}<br>${e.comp}<br>${e.location}`, c.style.backgroundColor = e.colour)
 	,     addEvent    = e => addChunk(...e.time, styleEvent(e))
 	,     handleEvent = (t, e) => e.time[0] < t ? t : (addSpare(t, e.time[0]), addEvent(e), e.time[1])
 
