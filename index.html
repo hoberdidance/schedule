@@ -27,14 +27,14 @@ const militaryToTime = t => { const h = ~~(t < 13 ? t : t-12), m = t%1 ? "30" : 
 const parse = s => { s = s.split("\n").filter(l => l.trim())
 	let colours = ["LightSkyBlue", "Tomato", "Wheat", "Gold", "LightGreen", "Thistle", "AliceBlue", "Orange"]
 	const useColour = _ => colours.splice(~~(Math.random() * colours.length), 1)[0]
-	const parseWhile = (cond, parse, after = _ => {}) => { const a = []; while (cond()) a.push(parse()), after(); return a }
+	const parseWhile = (cond, parse, after = _ => {}) => { const a = []; for (; cond(); after()) a.push(parse()); return a }
 
-	let comp;
 	const parseDay      = date => ["Mo", "Tu", "We", "Th", "Fr"].indexOf(date.slice(0, 2))
 	,     parseTime     = date => date.slice(2).split("-").map(t => Math.round(timeToMilitary(t)*2)/2)
 	,     parseLocation = _ => s.shift().split("(")[1].replace(")", "")
-	,     parseEvent    = _ => ({ day: parseDay(s[0]), time: parseTime(s.shift()), location: parseLocation(), comp })
-	,     parseSection  = _ => (comp = s.splice(0, 3).at(-1), parseWhile(_ => s[0]?.match(/AM|PM/), parseEvent, _ => s.splice(0, 2)))
+	,     parseEvent    = comp => _ => ({ day: parseDay(s[0]), time: parseTime(s.shift()), location: parseLocation(), comp })
+	,     parseSection  = _ => { const component = s.splice(0, 3).at(-1);
+          return parseWhile(_ => s[0]?.match(/AM|PM/), parseEvent(component), _ => s.splice(0, 2)) }
 	,     skipHeader    = _ => { while (!s.shift().match(/^Class Nbr/)); }
 	,     parseBody     = _ => (skipHeader(), parseWhile(_ => !isNaN(s[0]), parseSection).flat())
 	,     parseName     = _ => s.shift().split(" - ")[1]
